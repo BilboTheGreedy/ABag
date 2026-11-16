@@ -18,7 +18,7 @@ local defaults = {
 	chars = {},
 }
 
-ACore.New(ADDON, ns, { db = "ABagDB", defaults = defaults })
+ACore.New(ADDON, ns, { db = "ABagDB", defaults = defaults, profile = true, shared = { "chars" } })
 
 ns.query = ""
 ns.known = {}
