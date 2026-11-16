@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="ABAG_TOGGLE" header="ABAG" category="ADDONS">
+		ABag_ToggleBinding()
+	</Binding>
+</Bindings>

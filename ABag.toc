@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: ABag
+## Notes: All bags in one window with search, categories, sorting, junk selling and a bank view
+## Version: 0.1.0
+## Category: Inventory
+## IconTexture: Interface\Icons\INV_Misc_Bag_08
+## Dependencies: ACore
+## OptionalDeps: ALoot, AAuction
+## SavedVariables: ABagDB
+
+Core.lua
+Items.lua
+Buttons.lua
+Window.lua
+Cache.lua
+Vendor.lua
