@@ -45,6 +45,12 @@ local function decorate(b)
 	b.star:SetSize(12, 12)
 	b.star:SetPoint("TOPRIGHT", -1, -1)
 	b.star:Hide()
+	b.up = b:CreateTexture(nil, "OVERLAY")
+	b.up:SetTexture("Interface\\Buttons\\UI-MicroStream-Green")
+	b.up:SetTexCoord(0, 1, 1, 0)
+	b.up:SetSize(14, 14)
+	b.up:SetPoint("TOPLEFT", -1, 1)
+	b.up:Hide()
 	b.coin = b:CreateTexture(nil, "OVERLAY")
 	b.coin:SetTexture("Interface\\Buttons\\UI-GroupLoot-Coin-Up")
 	b.coin:SetSize(14, 14)
@@ -164,6 +170,12 @@ function ns.UpdateButton(b, e)
 	end
 	b.coin:SetShown(item and e.junk or false)
 	b.star:SetShown(item and ns.Wished(e.id) or false)
+	local better = false
+	if item and e.live and (e.classID == 2 or e.classID == 4) and AGear and AGear.IsUpgrade then
+		local ok, v = pcall(AGear.IsUpgrade, e.link or e.id)
+		better = ok and v and true or false
+	end
+	b.up:SetShown(better)
 	b.glow:SetShown(item and e.live and ns.db.glow and ns.knownReady and not ns.known[e.id] or false)
 	if b.cd and e.live then
 		local start, duration, enable = 0, 0, 0
