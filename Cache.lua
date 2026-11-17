@@ -97,9 +97,9 @@ function View.Show(key, which)
 		if not b then
 			b = ns.NewPlainButton(frame.body)
 			b:SetScript("OnEnter", function(self)
-				if not self.item then return end
+				if not self.entry then return end
 				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-				GameTooltip:SetHyperlink("item:" .. self.item.id)
+				GameTooltip:SetHyperlink("item:" .. self.entry.id)
 				GameTooltip:Show()
 			end)
 			b:SetScript("OnLeave", function() GameTooltip:Hide() end)

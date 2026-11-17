@@ -14,6 +14,11 @@ local function num(v, default)
 end
 
 function C.Slots(bag)
+	if bag == nil then return 0 end
+	if bag == KEYRING_CONTAINER and GetKeyRingSize then
+		local ok, n = pcall(GetKeyRingSize)
+		return ok and num(n, 0) or 0
+	end
 	local f = CC.GetContainerNumSlots or GetContainerNumSlots
 	if not f then return 0 end
 	local ok, n = pcall(f, bag)
@@ -55,7 +60,17 @@ function C.Cooldown(bag, slot)
 	if not f then return 0, 0, 0 end
 	local ok, start, duration, enable = pcall(f, bag, slot)
 	if not ok then return 0, 0, 0 end
+	if ns.IsSecret(start) or ns.IsSecret(duration) then return start, duration, 1, true end
+	if ns.IsSecret(enable) then enable = 1 end
 	return start or 0, duration or 0, enable or 0
+end
+
+function C.Quest(bag, slot)
+	if not CC.GetContainerItemQuestInfo then return false, false end
+	local ok, t = pcall(CC.GetContainerItemQuestInfo, bag, slot)
+	if not ok or type(t) ~= "table" then return false, false end
+	local starts = t.questID and not t.isActive
+	return (t.isQuestItem or t.questID) and true or false, starts and true or false
 end
 
 function C.Use(bag, slot)
@@ -77,16 +92,37 @@ end
 
 local BACKPACK = BACKPACK_CONTAINER or 0
 local NUM_BAGS = NUM_BAG_SLOTS or 4
+local NUM_HELD = math.max(NUM_BAGS, NUM_TOTAL_EQUIPPED_BAG_SLOTS or 0)
 local NUM_BANK = NUM_BANKBAGSLOTS or 6
 local BANK = BANK_CONTAINER or -1
+
+function ns.BankType()
+	return Enum and Enum.BankType and Enum.BankType.Character
+end
+
+function ns.TabbedBank()
+	return C_Bank and C_Bank.FetchPurchasedBankTabIDs and ns.BankType() ~= nil and true or false
+end
+
+local function bankTabs()
+	local ok, ids = pcall(C_Bank.FetchPurchasedBankTabIDs, ns.BankType())
+	local out = {}
+	if ok and type(ids) == "table" then
+		for _, id in ipairs(ids) do
+			if type(id) == "number" then out[#out + 1] = id end
+		end
+	end
+	return out
+end
 
 function ns.BagList(kind)
 	local out = {}
 	if kind == "bank" then
+		if ns.TabbedBank() then return bankTabs() end
 		out[1] = BANK
-		for i = 1, NUM_BANK do out[#out + 1] = NUM_BAGS + i end
+		for i = 1, NUM_BANK do out[#out + 1] = NUM_HELD + i end
 	else
-		for i = BACKPACK, NUM_BAGS do out[#out + 1] = i end
+		for i = BACKPACK, NUM_HELD do out[#out + 1] = i end
 		if ns.db.keyring and KEYRING_CONTAINER and C.Slots(KEYRING_CONTAINER) > 0 then
 			out[#out + 1] = KEYRING_CONTAINER
 		end
@@ -97,9 +133,18 @@ end
 function ns.BagBarList(kind)
 	local out = {}
 	if kind == "bank" then
-		for i = 1, NUM_BANK do out[#out + 1] = NUM_BAGS + i end
+		if ns.TabbedBank() then
+			local index = Enum.BagIndex or {}
+			local holder, first = index.Characterbanktab, index.CharacterBankTab_1
+			if not holder or not first or not C_Bank.FetchMaxNumBankTabs then return out end
+			local ok, max = pcall(C_Bank.FetchMaxNumBankTabs, ns.BankType())
+			if not ok or type(max) ~= "number" then return out end
+			for n = 2, max do out[#out + 1] = { bag = first + n - 1, holder = holder, index = n } end
+			return out
+		end
+		for i = 1, NUM_BANK do out[#out + 1] = { bag = NUM_HELD + i } end
 	else
-		for i = 1, NUM_BAGS do out[#out + 1] = i end
+		for i = 1, NUM_HELD do out[#out + 1] = { bag = i } end
 	end
 	return out
 end
@@ -168,6 +213,7 @@ function ns.Scan(kind)
 					if ok and num(level) then e.ilvl = level end
 				end
 				e.junk = e.quality == 0 and e.price > 0 and not info.noValue
+				e.quest, e.starts = C.Quest(bag, slot)
 				e.category = ns.Category(e)
 			end
 			out[#out + 1] = e
@@ -270,6 +316,10 @@ function ns.Sort(kind)
 		return
 	end
 	if kind == "bank" then
+		if CC.SortBank and ns.BankType() ~= nil then
+			pcall(CC.SortBank, ns.BankType())
+			return
+		end
 		local f = CC.SortBankBags or SortBankBags
 		if f then
 			pcall(f)

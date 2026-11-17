@@ -56,6 +56,11 @@ local function decorate(b)
 	b.coin:SetSize(14, 14)
 	b.coin:SetPoint("BOTTOMLEFT", 1, 1)
 	b.coin:Hide()
+	b.bang = b:CreateTexture(nil, "OVERLAY")
+	b.bang:SetTexture("Interface\\ContainerFrame\\UI-Icon-QuestBang")
+	b.bang:SetPoint("TOPLEFT", 1, -1)
+	b.bang:SetPoint("BOTTOMRIGHT", -1, 1)
+	b.bang:Hide()
 end
 
 local function edgeColor(b, r, g, bl, a)
@@ -107,11 +112,11 @@ function ns.NewItemButton(parent, bag, slot)
 	quiet(b, "IconQuestTexture")
 	decorate(b)
 	b:HookScript("OnEnter", function(self)
-		if self.item then
-			ns.known[self.item.id] = true
+		if self.entry then
+			ns.known[self.entry.id] = true
 			self.glow:Hide()
 		end
-		if self.bag == (BANK_CONTAINER or -1) and BankButtonIDToInvSlotID and self.item then
+		if BANK_CONTAINER and self.bag == BANK_CONTAINER and BankButtonIDToInvSlotID and self.entry then
 			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 			GameTooltip:SetInventoryItem("player", BankButtonIDToInvSlotID(self.slot))
 			GameTooltip:Show()
@@ -135,8 +140,8 @@ end
 
 function ns.UpdateButton(b, e)
 	local item = e.id and e or nil
-	b.item = item
-	b.hasItem = item and true or nil
+	b.entry = item
+	if b.bag then b.hasItem = item and 1 or nil end
 	if item then
 		b.iconTex:SetTexture(e.icon)
 		b.iconTex:Show()
@@ -156,7 +161,7 @@ function ns.UpdateButton(b, e)
 	local q = item and QUALITY[e.quality or 1]
 	if q then
 		edgeColor(b, q[1], q[2], q[3], 1)
-	elseif item and e.classID == 12 then
+	elseif item and (e.classID == 12 or e.quest) then
 		edgeColor(b, 1, 0.82, 0, 1)
 	else
 		edgeColor(b, C.line[1], C.line[2], C.line[3], 1)
@@ -169,6 +174,7 @@ function ns.UpdateButton(b, e)
 		b.ilvl:Hide()
 	end
 	b.coin:SetShown(item and e.junk or false)
+	b.bang:SetShown(item and e.starts or false)
 	b.star:SetShown(item and ns.Wished(e.id) or false)
 	local better = false
 	if item and e.live and (e.classID == 2 or e.classID == 4) and AGear and AGear.IsUpgrade then
@@ -178,9 +184,11 @@ function ns.UpdateButton(b, e)
 	b.up:SetShown(better)
 	b.glow:SetShown(item and e.live and ns.db.glow and ns.knownReady and not ns.known[e.id] or false)
 	if b.cd and e.live then
-		local start, duration, enable = 0, 0, 0
-		if item then start, duration, enable = ns.C.Cooldown(e.bag, e.slot) end
-		if CooldownFrame_Set then
+		local start, duration, enable, secret = 0, 0, 0, false
+		if item then start, duration, enable, secret = ns.C.Cooldown(e.bag, e.slot) end
+		if secret then
+			if b.cd.SetCooldown then pcall(b.cd.SetCooldown, b.cd, start, duration) end
+		elseif CooldownFrame_Set then
 			pcall(CooldownFrame_Set, b.cd, start, duration, enable)
 		elseif b.cd.SetCooldown then
 			pcall(b.cd.SetCooldown, b.cd, start, duration)

@@ -44,6 +44,7 @@ ACore.Register({
 	slash = "/abag",
 	desc = "bags and bank",
 	toggle = function() ns.Bags.Toggle() end,
+	options = function() return ns.Options() end,
 })
 
 SLASH_ABAG1 = "/abag"
